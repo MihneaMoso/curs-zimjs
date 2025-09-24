@@ -67,7 +67,7 @@ const butonSunet = new Button({
 // Atasam un eveniment de tip "mousedown" (se declanseaza cand apasam click)
 butonSunet.on("mousedown", () => {
   // Redam sunetul
-  zim.playSound("efect.wav");
+  new Aud("efect.wav").play();
 });
 ```
 
@@ -114,7 +114,7 @@ function ready() {
     clapa.on("mousedown", () => {
       // Redam sunetul corespunzator clapei
       // note[i] va fi "do", "re", etc., in functie de clapa
-      zim.playSound(note[i] + ".mp3");
+      new Aud(note[i] + ".mp3").play();
 
       // Efect vizual: schimbam culoarea la apasare
       clapa.color = "lightgray";

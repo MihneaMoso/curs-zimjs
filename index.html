@@ -26,7 +26,8 @@
 
     <script type="module">
       // Aici vom scrie codul nostru ZIM
-      const frame = new Frame("fit", 800, 600, "lightblue", "darkblue", ready);
+      const frame = new Frame("fit", 800, 600, "lightblue", "darkblue");
+      frame.on("ready", ready);
 
       function ready() {
         const stage = frame.stage;
@@ -83,7 +84,7 @@
         };
 
         // -- CONTROALE --
-        // Tastatura
+        // Tastatura - asigurăm și listener global pentru keydown (browser focus issues)
         frame.on("keydown", (e) => {
           if (!jocActiv) return;
           if (e.key === "ArrowLeft") mutaStanga();
@@ -91,58 +92,66 @@
           if (e.key === "ArrowUp") sari();
           if (e.key === "ArrowDown") ghemuire();
         });
-        // Butoane pe ecran
+        window.addEventListener("keydown", (e) => {
+          if (!jocActiv) return;
+          if (e.key === "ArrowLeft") mutaStanga();
+          if (e.key === "ArrowRight") mutaDreapta();
+          if (e.key === "ArrowUp") sari();
+          if (e.key === "ArrowDown") ghemuire();
+        });
+
         const btnStanga = new Button({
-          label: "<",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
+            label: "<",
+            width: 80,
+            height: 80,
+            corner: 40,
+          })
           .loc(50, stageH - 100)
-          .on("mousedown", mutaStanga);
+          .on("click", mutaStanga);
         const btnDreapta = new Button({
-          label: ">",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
+            label: ">",
+            width: 80,
+            height: 80,
+            corner: 40,
+          })
           .loc(stageW - 130, stageH - 100)
-          .on("mousedown", mutaDreapta);
+          .on("click", mutaDreapta);
         const btnSus = new Button({
-          label: "▲",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(stageW - 130, stageH - 350)
-          .on("mousedown", sari);
+            label: "▲",
+            width: 80,
+            height: 80,
+            corner: 40,
+          })
+          .loc(stageW - 130, stageH - 200)
+          .on("click", sari);
         const btnJos = new Button({
-          label: "▼",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(stageW - 130, stageH - 220)
-          .on("mousedown", ghemuire);
-        new Tile([btnStanga, btnDreapta, btnSus, btnJos], 2, 2, 10, 10).loc(
-          50,
-          stageH - 210
-        );
+            label: "▼",
+            width: 80,
+            height: 80,
+            corner: 40,
+          })
+          .loc(stageW - 130, stageH - 120)
+          .on("click", ghemuire);
+
+        // Adăugăm butoanele într-un Tile și îl adăugăm explicit la scena pentru a ne asigura
+        const controls = new Tile([btnStanga, btnDreapta, btnSus, btnJos], 2, 2, 10, 10)
+          .loc(50, stageH - 210)
+          .addTo(stage);
 
         // -- OBSTACOLE & LOGICA JOC --
         obstacole.addTo(stage);
         interval(1500, () => {
           if (!jocActiv) return;
-          const tipObstacol = rand() > 0.5 ? "jos" : "sus";
+          const tipObstacol = Math.random() > 0.5 ? "jos" : "sus";
           const obstacol = new Rectangle(
             100,
             tipObstacol === "jos" ? 80 : 200,
             "red"
           );
           obstacol.tip = tipObstacol;
-          obstacol
-            .loc(frame.center.x + culoare[rand(2)], -200)
-            .addTo(obstacole);
+          // alegem un index sigur pentru cele 3 benzi
+          const idx = Math.floor(Math.random() * 3);
+          obstacol.loc(frame.center.x + culoare[idx], -200).addTo(obstacole);
           obstacol.animate({ y: stageH + 200 }, 2000, "linear", () =>
             obstacol.removeFrom(obstacole)
           );
@@ -150,16 +159,21 @@
 
         // -- SCOR & COLIZIUNI --
         scorLabel = new Label("Scor: 0", 30).loc(50, 50);
+        // Verificăm coliziuni și acordăm puncte când obstacolul a trecut jucătorul
         Ticker.add(() => {
           if (!jocActiv) return;
-          scor++;
-          scorLabel.text = "Scor: " + scor;
           obstacole.loop((obstacol) => {
+            // coliziune
             if (obstacol.hitTestBounds(jucator)) {
-              if (obstacol.tip === "jos" && jucator.stare !== "sare")
-                gameOver();
+              if (obstacol.tip === "jos" && jucator.stare !== "sare") gameOver();
               if (obstacol.tip === "sus" && jucator.stare !== "se ghemuie")
                 gameOver();
+            }
+            // punctare: când obstacolul trece în spatele jucătorului (y mai mare)
+            if (!obstacol.scored && obstacol.y > jucator.y + jucator.height / 2) {
+              obstacol.scored = true;
+              scor++;
+              scorLabel.text = "Scor: " + scor;
             }
           });
         });
