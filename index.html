@@ -1,177 +1,331 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>ZIM - Salut Lume</title>
+    <head>
+        <meta charset="utf-8" />
+        <title>ZIM - Salut Lume</title>
 
-    <script type="module" src="https://zimjs.org/cdn/018/zim.js">
-      // import zim from "https://zimjs.org/cdn/018/zim";
-    </script>
+        <script type="module" src="https://zimjs.org/cdn/018/zim.js">
+            // import zim from "https://zimjs.org/cdn/018/zim";
+        </script>
 
-    <style>
-      body {
-        margin: 0;
-        background: #333;
-      }
-
-      #zim {
-        display: block;
-        background: #000;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div id="zim"></div>
-
-    <script type="module">
-      // Aici vom scrie codul nostru ZIM
-      const frame = new Frame("fit", 800, 600, "lightblue", "darkblue", ready);
-
-      function ready() {
-        const stage = frame.stage;
-        let stageW = frame.width;
-        let stageH = frame.height;
-
-        // -- SETUP JOC --
-        const culoare = [-200, 0, 200]; // Coordonatele X pentru cele 3 culoare
-        let indexCuloar = 1; // Incepem pe culoarul din mijloc
-        let jucator,
-          scorLabel,
-          scor = 0;
-        let obstacole = new Container();
-        let jocActiv = true;
-
-        // -- JUCATOR --
-        jucator = new Rectangle(80, 150, "orange").center().mov(0, 150);
-        jucator.stare = "alearga"; // Stari posibile: alearga, sare, se ghemuie
-
-        // -- MISCARE JUCATOR --
-        const mutaStanga = () => {
-          if (indexCuloar > 0) indexCuloar--;
-          actualizeazaPozitia();
-        };
-        const mutaDreapta = () => {
-          if (indexCuloar < 2) indexCuloar++;
-          actualizeazaPozitia();
-        };
-        const actualizeazaPozitia = () =>
-          jucator.animate({ x: frame.width / 2 + culoare[indexCuloar] }, 200);
-
-        const sari = () => {
-          if (jucator.stare !== "alearga") return;
-          jucator.stare = "sare";
-          jucator.animate({ y: jucator.y - 200 }, 300, "quadOut", () => {
-            jucator.animate(
-              { y: jucator.y + 200 },
-              300,
-              "quadIn",
-              () => (jucator.stare = "alearga")
-            );
-          });
-        };
-        const ghemuire = () => {
-          if (jucator.stare !== "alearga") return;
-          jucator.stare = "se ghemuie";
-          jucator.height = 75;
-          jucator.y += 75;
-          timeout(500, () => {
-            jucator.height = 150;
-            jucator.y -= 75;
-            jucator.stare = "alearga";
-          });
-        };
-
-        // -- CONTROALE --
-        // Tastatura
-        frame.on("keydown", (e) => {
-          if (!jocActiv) return;
-          if (e.key === "ArrowLeft") mutaStanga();
-          if (e.key === "ArrowRight") mutaDreapta();
-          if (e.key === "ArrowUp") sari();
-          if (e.key === "ArrowDown") ghemuire();
-        });
-        // Butoane pe ecran
-        const btnStanga = new Button({
-          label: "<",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(50, stageH - 100)
-          .on("mousedown", mutaStanga);
-        const btnDreapta = new Button({
-          label: ">",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(stageW - 130, stageH - 100)
-          .on("mousedown", mutaDreapta);
-        const btnSus = new Button({
-          label: "▲",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(stageW - 130, stageH - 350)
-          .on("mousedown", sari);
-        const btnJos = new Button({
-          label: "▼",
-          width: 80,
-          height: 80,
-          corner: 40,
-        })
-          .loc(stageW - 130, stageH - 220)
-          .on("mousedown", ghemuire);
-        new Tile([btnStanga, btnDreapta, btnSus, btnJos], 2, 2, 10, 10).loc(
-          50,
-          stageH - 210
-        );
-
-        // -- OBSTACOLE & LOGICA JOC --
-        obstacole.addTo(stage);
-        interval(1500, () => {
-          if (!jocActiv) return;
-          const tipObstacol = rand() > 0.5 ? "jos" : "sus";
-          const obstacol = new Rectangle(
-            100,
-            tipObstacol === "jos" ? 80 : 200,
-            "red"
-          );
-          obstacol.tip = tipObstacol;
-          obstacol
-            .loc(frame.center.x + culoare[rand(2)], -200)
-            .addTo(obstacole);
-          obstacol.animate({ y: stageH + 200 }, 2000, "linear", () =>
-            obstacol.removeFrom(obstacole)
-          );
-        });
-
-        // -- SCOR & COLIZIUNI --
-        scorLabel = new Label("Scor: 0", 30).loc(50, 50);
-        Ticker.add(() => {
-          if (!jocActiv) return;
-          scor++;
-          scorLabel.text = "Scor: " + scor;
-          obstacole.loop((obstacol) => {
-            if (obstacol.hitTestBounds(jucator)) {
-              if (obstacol.tip === "jos" && jucator.stare !== "sare")
-                gameOver();
-              if (obstacol.tip === "sus" && jucator.stare !== "se ghemuie")
-                gameOver();
+        <style>
+            body {
+                margin: 0;
+                background: #333;
             }
-          });
-        });
 
-        const gameOver = () => {
-          jocActiv = false;
-          new Label("GAME OVER", 80).center();
-          stage.update();
-        };
+            #zim {
+                display: block;
+                background: #000;
+            }
+        </style>
+    </head>
 
-        stage.update();
-      }
-    </script>
-  </body>
+    <body>
+        <div id="zim"></div>
+
+        <script type="module">
+            // Aici vom scrie codul nostru ZIM - Joc tip Chrome Dino
+            const frame = new Frame(
+                "fit",
+                800,
+                400,
+                "#87CEEB",
+                "#87CEEB",
+                ready
+            );
+
+            function ready() {
+                const stage = frame.stage;
+                let stageW = frame.width;
+                let stageH = frame.height;
+
+                // -- SETUP JOC --
+                const groundHeight = 40;
+                const groundTop = stageH - groundHeight;
+
+                // ground
+                const ground = new Rectangle(stageW, groundHeight, "#444").loc(
+                    0,
+                    stageH - groundHeight
+                );
+                stage.addChild(ground);
+
+                // player - orange rectangle in middle-left area
+                const playerW = 48;
+                const playerH = 48;
+                const player = new Rectangle(playerW, playerH, "#ff8c00");
+                player.centerReg();
+                // place player a bit right of left edge and standing on ground
+                player.x = 120;
+                player.y = groundTop - playerH / 2;
+                stage.addChild(player);
+
+                // state
+                let vy = 0;
+                const gravity = 1.2;
+                const jumpPower = -18;
+                let ducking = false;
+                let alive = true;
+
+                // score
+                let startTime = Date.now();
+                const scoreLabel = new Label("Score: 0", 20, "#fff").loc(
+                    10,
+                    10
+                );
+                scoreLabel.alpha = 1;
+                stage.addChild(scoreLabel);
+
+                // speed and obstacles
+                let baseSpeed = 6;
+                let speed = baseSpeed;
+                const obstacles = [];
+
+                // UI buttons using ZIM so they live inside the canvas and receive events
+                const upBtn = new Button("Jump", 90, 36);
+                upBtn.loc(12, stageH - 52);
+                stage.addChild(upBtn);
+
+                const downBtn = new Button("Duck", 90, 36);
+                downBtn.loc(110, stageH - 52);
+                stage.addChild(downBtn);
+
+                // ZIM Button events - mousedown/pressup work for mouse & touch
+                upBtn.on("mousedown", () => { if (alive) jump(); });
+                upBtn.on("click", () => { if (alive) jump(); });
+                downBtn.on("mousedown", () => { if (alive) startDuck(); });
+                downBtn.on("pressup", () => { if (alive) endDuck(); });
+
+                // keyboard controls
+                window.addEventListener("keydown", (e) => {
+                    if (!alive) return;
+                    if (
+                        e.code === "ArrowUp" ||
+                        e.code === "Space" ||
+                        e.key === "w" ||
+                        e.key === "W"
+                    ) {
+                        jump();
+                    }
+                    if (
+                        e.code === "ArrowDown" ||
+                        e.key === "s" ||
+                        e.key === "S"
+                    ) {
+                        startDuck();
+                    }
+                });
+                window.addEventListener("keyup", (e) => {
+                    if (!alive) return;
+                    if (
+                        e.code === "ArrowDown" ||
+                        e.key === "s" ||
+                        e.key === "S"
+                    ) {
+                        endDuck();
+                    }
+                });
+
+                function jump() {
+                    if (!alive) return;
+                    // only jump if on ground
+                    const playerBottom = player.y + playerH / 2;
+                    if (Math.abs(playerBottom - groundTop) < 2) {
+                        vy = jumpPower;
+                        ducking = false;
+                        setPlayerSize(playerW, playerH);
+                    }
+                }
+
+                function startDuck() {
+                    if (!alive) return;
+                    // only duck while on ground
+                    const playerBottom = player.y + playerH / 2;
+                    if (Math.abs(playerBottom - groundTop) < 2) {
+                        ducking = true;
+                        setPlayerSize(playerW, playerH / 2);
+                    }
+                }
+
+                function endDuck() {
+                    if (!alive) return;
+                    ducking = false;
+                    setPlayerSize(playerW, playerH);
+                }
+
+                function setPlayerSize(w, h) {
+                    // keep center x, and place bottom on ground
+                    const cx = player.x;
+                    player.width = w;
+                    player.height = h;
+                    player.x = cx;
+                    player.y = groundTop - h / 2;
+                }
+
+                // spawn obstacles
+                let spawnTimer = 0;
+                let spawnInterval = 1400; // ms
+
+                function spawnObstacle() {
+                    // randomly choose obstacle type: low (need jump) or high (need duck)
+                    const type = Math.random() < 0.6 ? "low" : "high";
+                    if (type === "low") {
+                        const h = 36 + Math.random() * 20;
+                            const w = 18 + Math.random() * 30;
+                            const r = new Rectangle(w, h, '#228B22');
+                            r.centerReg();
+                            r.x = stageW + w / 2; // spawn just off right edge
+                            r.y = groundTop - h / 2;
+                        r.type = "low";
+                        stage.addChild(r);
+                        obstacles.push(r);
+                    } else {
+                        // high obstacle hangs above the player so you must duck to pass
+                        const h = 24 + Math.random() * 24;
+                        const w = 30 + Math.random() * 30;
+                        const r = new Rectangle(w, h, '#2F4F4F');
+                        r.centerReg();
+                        r.x = stageW + w / 2;
+                        // set obstacle bottom a bit above the player's head when standing
+                        const bottomFromGround = 28 + Math.random() * 12; // px above ground
+                        r.y = (groundTop - bottomFromGround) - h / 2; // center-based
+                        r.type = "high";
+                        stage.addChild(r);
+                        obstacles.push(r);
+                    }
+                }
+
+                // restart UI
+                const gameOverLabel = new Label("", 36, "#fff").centerReg();
+                gameOverLabel.alpha = 0;
+                stage.addChild(gameOverLabel);
+
+                const restartBtn = new Button({label: "Restart", width:160, height:48});
+                restartBtn.center(stage).y = stageH/2 + 60;
+                restartBtn.visible = false;
+                stage.addChild(restartBtn);
+
+                restartBtn.on("click", () => { resetGame(); });
+
+                function resetGame() {
+                    // remove obstacles
+                    obstacles.forEach((o) => {
+                        try {
+                            stage.removeChild(o);
+                        } catch (e) {}
+                    });
+                    obstacles.length = 0;
+                    alive = true;
+                    vy = 0;
+                    ducking = false;
+                    setPlayerSize(playerW, playerH);
+                    startTime = Date.now();
+                    speed = baseSpeed;
+                    spawnInterval = 1400;
+                    gameOverLabel.text = "";
+                    gameOverLabel.alpha = 0;
+                    restartBtn.visible = false;
+                }
+
+                // AABB collision using center-based x,y
+                function hitTest(a, b) {
+                    const aLeft = a.x - a.width / 2;
+                    const aRight = a.x + a.width / 2;
+                    const aTop = a.y - a.height / 2;
+                    const aBottom = a.y + a.height / 2;
+
+                    const bLeft = b.x - b.width / 2;
+                    const bRight = b.x + b.width / 2;
+                    const bTop = b.y - b.height / 2;
+                    const bBottom = b.y + b.height / 2;
+
+                    return !(
+                        aRight < bLeft ||
+                        aLeft > bRight ||
+                        aBottom < bTop ||
+                        aTop > bBottom
+                    );
+                }
+
+                // main loop - use Ticker
+                frame.on("tick", (e) => {
+                    if (!alive) return;
+
+                    const now = Date.now();
+                    const elapsed = now - startTime;
+
+                    // update score and gradually increase speed
+                    const points = Math.floor(elapsed / 100);
+                    scoreLabel.text = "Score: " + points;
+                    speed = baseSpeed + Math.floor(points / 100) * 0.75;
+
+                    // physics
+                    vy += gravity;
+                    player.y += vy;
+
+                    // ground collision
+                    const playerBottom = player.y + player.height / 2;
+                    if (playerBottom > groundTop) {
+                        player.y = groundTop - player.height / 2;
+                        vy = 0;
+                    }
+
+                    // spawn logic
+                    spawnTimer += e.delta; // use event delta (milliseconds since last tick)
+                    if (spawnTimer > spawnInterval) {
+                        spawnTimer = 0;
+                        spawnObstacle();
+                        // slightly reduce interval as time goes on
+                        spawnInterval = Math.max(
+                            650,
+                            1400 - Math.floor(points / 200) * 80
+                        );
+                    }
+
+                    // move obstacles and detect collisions
+                    for (let i = obstacles.length - 1; i >= 0; i--) {
+                        const ob = obstacles[i];
+                        ob.x -= speed;
+                        // remove if off screen
+                        if (ob.x + ob.width / 2 < -50) {
+                            try {
+                                stage.removeChild(ob);
+                            } catch (e) {}
+                            obstacles.splice(i, 1);
+                            continue;
+                        }
+
+                                    // collision with conditional avoidance
+                                    if (hitTest(player, ob)) {
+                                        const obTop = ob.y - ob.height / 2;
+                                        const obBottom = ob.y + ob.height / 2;
+                                        const playerTop = player.y - player.height / 2;
+                                        const playerBottom = player.y + player.height / 2;
+
+                                        let safe = false;
+                                        if (ob.type === 'low') {
+                                            // if player's bottom is above obstacle top (jumped over), safe
+                                            if (playerBottom <= obTop + 2) safe = true;
+                                        } else if (ob.type === 'high') {
+                                            // if ducking reduces player's top below obstacle bottom, safe
+                                            if (ducking && playerTop >= obBottom - 2) safe = true;
+                                        }
+
+                                        if (!safe) {
+                                            alive = false;
+                                            gameOverLabel.text = 'Game Over';
+                                            gameOverLabel.center(stage).alpha = 1;
+                                            restartBtn.visible = true;
+                                            break;
+                                        }
+                                    }
+                    }
+                });
+
+                // initial spawn
+                spawnObstacle();
+            }
+        </script>
+    </body>
 </html>
