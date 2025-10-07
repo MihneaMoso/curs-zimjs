@@ -217,31 +217,41 @@
             dino.grounded = true;
             gameOver = false;
             gameRunning = true;
+            gamePaused = false;
         }
 
         // function togglepauseGame() {
         // 
         // }
 
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            drawGround();
-            
-            if (gameRunning && !gamePaused) {
-                dino.update();
-                updateObstacles();
-                frameCount++;
-            }
-            
-            dino.draw();
-            
-            obstacles.forEach(obstacle => {
-                obstacle.draw();
-            });
+        const UPS = 80; // updates per second
+        const timestep = 1000 / UPS;
+        let last = performance.now();
+        let accumulator = 0;
 
-            requestAnimationFrame(gameLoop);
+        function loop(now) {
+          let delta = now - last;
+          last = now;
+          accumulator += delta;
+
+          while (accumulator >= timestep) {
+            if (gameRunning && !gamePaused) {
+              dino.update();        // update logic with fixed timestep
+              updateObstacles();
+              frameCount++;
+            }
+            accumulator -= timestep;
+          }
+
+          // render
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          drawGround();
+          dino.draw();
+          obstacles.forEach(obstacle => obstacle.draw());
+
+          requestAnimationFrame(loop);
         }
+        requestAnimationFrame(loop);
 
         // Controls
         document.addEventListener('keydown', (e) => {
@@ -250,11 +260,18 @@
                 if (!gameRunning && !gameOver) {
                     gameRunning = true;
                 }
-                if (gameRunning) {
+                
+                if (gameRunning && !gamePaused) {
                     dino.jump();
                 }
+                if (gameOver) {
+                    resetGame();
+                }
+                if (gamePaused && !gameOver) {
+                    gamePaused = false;
+                }
             }
-            if (e.code === 'KeyR' && gameOver) {
+            if (e.code === 'KeyR' && (gameOver || gamePaused)) {
                 resetGame();
             }
             if (e.code === 'KeyP' && !gameOver) {
@@ -275,7 +292,7 @@
         });
 
         // Start game loop
-        gameLoop();
+        // gameLoop();
     </script>
 </body>
 </html>
