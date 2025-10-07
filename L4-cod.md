@@ -50,7 +50,7 @@ function ready() {
 ```
 
 ```js
-// Acest cod vine in interiorul lui frame.on("ready", ...)
+// Acest cod vine in interiorul lui function ready() {...}
 
 frame.on("keydown", (e) => {
   // Verificam ce tasta a fost apasata
