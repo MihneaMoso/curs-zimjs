@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ZIM - Dino Runner</title>
+
+    <script type="module" src="https://zimjs.org/cdn/018/zim.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background: #87CEEB;
+      }
+      #zim {
+        display: block;
+        background: #87CEEB;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="zim"></div>
+
+    <script type="module">
+      // Game Code
+      const frame = new Frame("zim", 800, 600, "#87CEEB", "#87CEEB", ready);
+      
+      function ready() {
+        const stage = frame.stage;
+        const W = stage.width;
+        const H = stage.height;
+        
+        // Game variables
+        let gameStarted = false;
+        let gameOver = false;
+        let score = 0;
+        let obstacleSpeed = 5;
+        let obstacleInterval;
+        let scoreInterval;
+        
+        // Ground
+        const groundHeight = 100;
+        const ground = new Rectangle(W, groundHeight, "#90EE90")
+          .pos(0, H - groundHeight, LEFT, BOTTOM);
+        
+        // Moving background lines for running effect
+        const bgLines = [];
+        for (let i = 0; i < 8; i++) {
+          const line = new Rectangle(100, 4, "#FFD700")
+            .pos(i * 120, H - groundHeight - 10, LEFT, BOTTOM);
+          bgLines.push(line);
+        }
+        
+        // Player (Rectangle character)
+        const playerWidth = 40;
+        const playerHeight = 60;
+        const player = new Rectangle(playerWidth, playerHeight, "#FF6B6B")
+          .pos(100, H - groundHeight - playerHeight, LEFT, BOTTOM);
+        
+        // Player states
+        let isJumping = false;
+        let isDucking = false;
+        let playerY = player.y;
+        let velocityY = 0;
+        const gravity = 0.6;
+        const jumpForce = -15;
+        
+        // Score display
+        const scoreText = new Label({
+          text: "Score: 0",
+          size: 30,
+          color: "#FF1493",
+          font: "Arial",
+          bold: true
+        }).pos(20, 20, LEFT, TOP);
+        
+        // Start screen
+        const startText = new Label({
+          text: "Press SPACE or UP to Start!\nUP = Jump | DOWN = Duck",
+          size: 35,
+          color: "#FF69B4",
+          font: "Arial",
+          bold: true,
+          align: "center"
+        }).center();
+        
+        // Game over screen
+        const gameOverText = new Label({
+          text: "GAME OVER!\nPress SPACE to Restart",
+          size: 40,
+          color: "#FF1493",
+          font: "Arial",
+          bold: true,
+          align: "center"
+        }).center().vis(false);
+        
+        // Obstacles container
+        const obstacles = new Container(W, H).addTo();
+        
+        // Create obstacle function
+        function createObstacle() {
+          if (gameOver || !gameStarted) return;
+          
+          const obstacleType = Math.random() > 0.5 ? "tall" : "wide";
+          let obstacle;
+          
+          if (obstacleType === "tall") {
+            obstacle = new Rectangle(30, 80, "#9370DB")
+              .pos(W, H - groundHeight - 80, LEFT, BOTTOM);
+          } else {
+            obstacle = new Rectangle(50, 40, "#FF8C00")
+              .pos(W, H - groundHeight - 40, LEFT, BOTTOM);
+          }
+          
+          obstacle.type = obstacleType;
+          obstacles.addChild(obstacle);
+        }
+        
+        // Game loop
+        Ticker.add(() => {
+          if (!gameStarted || gameOver) return;
+          
+          // Move background lines
+          bgLines.forEach(line => {
+            line.x -= obstacleSpeed * 0.8;
+            if (line.x < -100) {
+              line.x = W;
+            }
+          });
+          
+          // Player jumping physics
+          if (isJumping) {
+            velocityY += gravity;
+            player.y += velocityY;
+            
+            if (player.y >= playerY) {
+              player.y = playerY;
+              velocityY = 0;
+              isJumping = false;
+            }
+          }
+          
+          // Player ducking
+          if (isDucking) {
+            player.height = playerHeight / 2;
+            player.y = playerY + playerHeight / 2;
+          } else if (!isJumping) {
+            player.height = playerHeight;
+            player.y = playerY;
+          }
+          
+          // Move obstacles
+          obstacles.loop(obstacle => {
+            obstacle.x -= obstacleSpeed;
+            
+            // Remove off-screen obstacles
+            if (obstacle.x < -50) {
+              obstacles.removeChild(obstacle);
+            }
+            
+            // Collision detection
+            if (player.hitTestRect(obstacle)) {
+              endGame();
+            }
+          });
+          
+          stage.update();
+        });
+        
+        // Start game
+        function startGame() {
+          gameStarted = true;
+          gameOver = false;
+          score = 0;
+          obstacleSpeed = 5;
+          scoreText.text = "Score: 0";
+          startText.vis(false);
+          gameOverText.vis(false);
+          
+          // Clear obstacles
+          obstacles.removeAllChildren();
+          
+          // Reset player
+          player.y = playerY;
+          player.height = playerHeight;
+          isJumping = false;
+          isDucking = false;
+          
+          // Start spawning obstacles
+          obstacleInterval = interval(2000, () => {
+            createObstacle();
+          });
+          
+          // Increase score
+          scoreInterval = interval(100, () => {
+            if (!gameOver && gameStarted) {
+              score++;
+              scoreText.text = "Score: " + score;
+              
+              // Gradually increase difficulty
+              if (score % 200 === 0) {
+                obstacleSpeed += 0.5;
+              }
+            }
+          });
+        }
+        
+        // End game
+        function endGame() {
+          gameOver = true;
+          gameStarted = false;
+          gameOverText.vis(true);
+          clearInterval(obstacleInterval);
+          clearInterval(scoreInterval);
+        }
+        
+        // Keyboard controls
+        stage.on("keydown", (e) => {
+          if (e.keyCode === 32 || e.keyCode === 38) { // Space or Up Arrow
+            if (!gameStarted && !gameOver) {
+              startGame();
+            } else if (gameOver) {
+              startGame();
+            } else if (!isJumping && !isDucking && gameStarted) {
+              isJumping = true;
+              velocityY = jumpForce;
+            }
+          }
+          
+          if (e.keyCode === 40 && !isJumping && gameStarted && !gameOver) { // Down Arrow
+            isDucking = true;
+          }
+        });
+        
+        stage.on("keyup", (e) => {
+          if (e.keyCode === 40) { // Down Arrow released
+            isDucking = false;
+          }
+        });
+        
+        stage.update();
+      }
+    </script> 
+  </body>
+ </html>
